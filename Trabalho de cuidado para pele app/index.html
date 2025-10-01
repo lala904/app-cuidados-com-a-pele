@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Rotina de Cuidados com a Pele</title>
+    <style>
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: lightpink;
+    padding: 20px;
+    max-width: 600px;
+    margin: auto;
+    color: black;
+}
+
+h1{
+    color: crimson;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+}
+
+#form{
+    text-align: center;
+    color: coral;
+}
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Rotina de cuidados com a Pele 💞</h1>
+        <p>Organize sua rotina diária e acompanhe os passos concluídos!</p>
+    </header>
+
+    <form id="form">
+        <input type="hidden" id="editId">
+
+        <div class="form-group">
+            <label>Nome da rotina:</label>
+            <br>
+            <input type="text" id="title" required placeholder="Ex: Rotina da Manhã">
+        </div> 
+
+        <div class="form-group">
+            <label>Em qual turno?</label>
+            <br>
+            <select id="when">
+                <option>Manhã</option>
+                <option>Tarde</option>
+                <option>Noite</option>
+                <option>Durante o dia</option>
+                <option>Antes de dormir</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Passo a Passo:</label>
+            <br>
+            <textarea id="steps" rows="4" required placeholder="Ex: Lavar o rosto&#10;Hidratante&#10;Protetor Solar"></textarea>
+        </div>
+
+        <button type="submit" onclick="botao()">Salvar Rotina</button>
+    </form>
+
+    <hr>
+
+    <div id="list"></div>
+
+    <script>
+        function botao(){
+        const form = document.getElementById("form"),
+                editId = document.getElementById("editId"),
+                title = document.getElementById("title"),
+                when = document.getElementById("when"),
+                steps = document.getElementById("steps"),
+                list = document.getElementById("list");
+
+        let routines = JSON.parse(localStorage.getItem("skin_routines")) || [];
+
+        const save = () => localStorage.setItem("skin_routines", JSON.stringify(routines));
+
+        function render() {
+            list.innerHTML = "";
+            if (!routines.length) {
+                list.innerHTML = "<p>Nenhuma rotina cadastrada.</p>";
+                return;
+            }
+
+            routines.forEach(r => {
+                const div = document.createElement("div");
+                div.className = "routine";
+                div.innerHTML = `
+                    <h3>${r.title}</h3>
+                    <small><strong>Horário:</strong> ${r.when}</small>
+                    <ul class="steps">
+                        ${r.steps.map(s => `
+                            <li class="${s.done ? "done" : ""}">
+                                <input type="checkbox" ${s.done ? "checked" : ""} onclick="toggleStep('${r.id}','${s.id}')">
+                                <span>${s.text}</span>
+                            </li>
+                        `).join("")}
+                    </ul>
+                    <div class="actions">
+                        <button onclick="editRoutine('${r.id}')">Editar</button>
+                        <button onclick="deleteRoutine('${r.id}')">Remover</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        form.onsubmit = e => {
+            e.preventDefault();
+
+            const id = editId.value;
+            const obj = {
+                id: id || Date.now().toString(),
+                title: title.value.trim(),
+                when: when.value,
+                steps: steps.value
+                    .split("\n")
+                    .filter(Boolean)
+                    .map((s, i) => ({ id: Date.now() + "-" + i, text: s.trim(), done: false }))
+            };
+
+            if (id) {
+                routines = routines.map(r => r.id === id ? obj : r);
+            } else {
+                routines.unshift(obj);
+            }
+
+            form.reset();
+            editId.value = "";
+            save();
+            render();
+        };
+
+        function toggleStep(routineId, stepId) {
+            routines = routines.map(r => {
+                if (r.id === routineId) {
+                    r.steps = r.steps.map(s => s.id === stepId ? { ...s, done: !s.done } : s);
+                }
+                return r;
+            });
+            save();
+            render();
+        }
+
+        function editRoutine(id) {
+            const r = routines.find(r => r.id === id);
+            if (!r) return;
+            editId.value = r.id;
+            title.value = r.title;
+            when.value = r.when;
+            steps.value = r.steps.map(s => s.text).join("\n");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function deleteRoutine(id) {
+            if (confirm("Deseja remover esta rotina?")) {
+                routines = routines.filter(r => r.id !== id);
+                save();
+                render();
+            }
+        }
+    }
+        render();
+    </script>
+
+</body>
+</html>
